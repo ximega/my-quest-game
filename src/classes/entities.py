@@ -155,7 +155,7 @@ class Player(Entity):
         if isinstance(arg, Item):
             combined_inventory = deepcopy(self.inventory)
             combined_inventory.extend(self.active_inventory)
-            
+
             return arg in combined_inventory
         elif isinstance(arg, str):
             combined_names = [x.name for x in self.inventory]

@@ -39,8 +39,8 @@ class CraftingErrorRecipe(Exception):
         super().__init__(message)
         
 class CommandArgumentDoesnotExist(Exception):
-    def __init__(self, message) -> None:
-        super().__init__(message)
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
         
 class InstanceAlreadyExists(Exception):
     def __init__(self, obj) -> None:

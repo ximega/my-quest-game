@@ -2,7 +2,9 @@ from src.classes.entities import Player
 from src.classes.room import Room
 from src.constants import T
 from collections.abc import Callable
-from src.exceptions import CommandArgumentDoesnotExist
+from src.exceptions import (
+    CommandArgumentDoesnotExist, DontHaveRequiredItem
+)
 import settings.default
 from src.utils2 import key_format_name
 from src.ui import UserInterface
@@ -17,15 +19,17 @@ class Response:
     def __str__(self) -> str:
         return str(self.content)
     
-def r_command_exc(command: Callable, *args, **objects) -> Response:
+def r_command_exc(command: Callable, *args, **objects) -> Response | tuple[Response, Room]:
     try:
         return command(*args, **objects)
     except IndexError:
-        return Response(f"{command.__name__} command can't run with provided arguments")
+        return Response(f"{command.__name__} command can't run with provided arguments: {args}")
     except KeyError:
         return Response(f"Required keywords weren't provided to the {command.__name__} command")
     except CommandArgumentDoesnotExist as exc:
         return Response(exc.args[0])
+    except DontHaveRequiredItem as exc:
+        return Response(f'Player do not have required "{exc.args[0]}"')
     
 
 def c_use(*args, **objects) -> Response:
@@ -90,9 +94,12 @@ def c_go(*args, **objects) -> tuple[Response, Room]:
     try:
         current_room: Room = objects['current_room']
 
-        potential_room: Room = current_room.get_next_room(args[1])
+        potential_room: Room | None = current_room.get_next_room(args[0])
 
-        if not isinstance(potential_room, Room):
+        if not potential_room.is_open:
+            raise CommandArgumentDoesnotExist(f"You can't enter the room with id {potential_room.id}, since it is locked for the player")
+
+        if isinstance(potential_room, Room):
             raise CommandArgumentDoesnotExist(f'c_go: Potential room, where player specified does not exist. Type "Any" was provided. {potential_room=}')
 
         return (

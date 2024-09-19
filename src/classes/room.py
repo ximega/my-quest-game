@@ -62,14 +62,18 @@ class Room:
             self.is_open = True
             player.open_room(self.id)
         else:
-            raise DontHaveRequiredItem(f'Player do not have required "Tier {self.tier} key"')
+            raise DontHaveRequiredItem(key_format_name(self.tier))
                 
-    def get_next_room(self, direction: DirectionLiteral) -> Self:
+    def get_next_room(self, direction: DirectionLiteral) -> Self | None:
         """
         Used only for going to another room from current. Other uses might break game.
         """
+
+        for room in self.next_rooms:
+            if room[1] == direction:
+                return room[0]
         
-        return self.next_rooms[direction]
+        return None
         
     def set_next_rooms(self, rooms: RoomsList) -> None:
         self.next_rooms = rooms

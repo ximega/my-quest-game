@@ -75,8 +75,17 @@ def main() -> None:
                 response = r_command_exc(c_set, *commands[1:])
                 
             case 'room':
-                response = r_command_exc(c_room, *commands[1:], current_room = current_room)
-        
+                response = r_command_exc(c_room, *commands[1:], current_room = current_room, player = player)
+
+            case 'go':
+                go_response = r_command_exc(c_go, *commands[1:], current_room = current_room)
+
+                if isinstance(go_response, tuple):
+                    response, current_room = go_response
+                elif isinstance(go_response, Response):
+                    response = go_response
+                else:
+                    raise TypeError(f'Unrecognised type of {type(go_response)}, with value {go_response}')
             case _:
                 if f'c_{commands[0]}' in ALL_COMMANDS:
                     response = Response(f"You can't temporarily use `{commands[0]}` command, since implementation is not done")
