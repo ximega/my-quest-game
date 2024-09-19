@@ -58,9 +58,9 @@ class Room:
         player.add_items_to_inventory(self.loot)
         
     def open_room(self, player: Player) -> None:
-        if player.has(key_format_name(self.id)):
+        if player.has(key_format_name(self.tier)):
             self.is_open = True
-            player.open_room(self.id)
+            player.open_room(self.id, self.tier)
         else:
             raise DontHaveRequiredItem(key_format_name(self.tier))
                 

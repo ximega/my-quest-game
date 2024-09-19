@@ -146,7 +146,7 @@ class Player(Entity):
             
         self.inventory.extend(list(items))
     
-    def has(self, arg: Item | str | T) -> bool:
+    def has(self, arg: Item | str) -> bool:
         """
         `arg`:
             - Item: will check whether the class itself in inventory
@@ -160,8 +160,36 @@ class Player(Entity):
         elif isinstance(arg, str):
             combined_names = [x.name for x in self.inventory]
             combined_names.extend([x.name for x in self.active_inventory])
+
+            print(combined_names, arg in combined_names, arg)
             
             return arg in combined_names
+        else:
+            raise IncorrectArgument(f"You can't argument type of {type(arg)}")
+    
+    def delete_item(self, arg: Item | str) -> None:
+        """
+        `arg`:
+            - Item: will check whether the class itself in inventory
+            - str: will check item by name whether it is in inventory
+        """
+
+        if isinstance(arg, Item):
+            if arg in self.active_inventory:
+                self.active_inventory.remove(arg)
+            elif arg in self.inventory:
+                self.inventory.remove(arg)
+            else:
+                raise IncorrectArgument(f"Can't delete {arg.name} from player's inventory: it doesn't exist in the player's inventory")
+        elif isinstance(arg, str):
+            active_names = [x.name for x in self.active_inventory]
+            passive_names = [x.name for x in self.inventory]
+            if arg in active_names:
+                self.active_inventory.pop(active_names.index(arg))
+            elif arg in passive_names:
+                self.inventory.pop(passive_names.index(arg))
+            else:
+                raise IncorrectArgument(f"Can't delete {arg} from player's inventory: it doesn't exist in the player's inventory")
         else:
             raise IncorrectArgument(f"You can't argument type of {type(arg)}")
 
@@ -180,12 +208,13 @@ class Player(Entity):
             
         return "\n".join(listed_items_with_index)
     
-    def open_room(self, room_id: int) -> None:
-        if self.has(key_format_name(room_id)):
+    def open_room(self, room_id: int, room_tier: int) -> None:
+        if self.has(key_format_name(room_tier)):
             self.open_rooms_id.append(room_id)
+            self.delete_item(key_format_name(room_tier))
         else:
-            raise DontHaveRequiredItem(f'Player doesn\'t have required item to enter room: {key_format_name(room_id)}')
-            
+            raise DontHaveRequiredItem(f'Player doesn\'t have required item to enter room: {key_format_name(room_tier)}')
+
 class Mob(Entity):
     def __init__(
             self, 

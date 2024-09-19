@@ -76,6 +76,8 @@ def c_room(*args: str, **objects: str) -> Response:
                     potential_room = current_room.get_next_room(args[1])
                     
                     potential_room.open_room(player)
+
+                    return Response(f'You opened room with id {potential_room.id} in {args[1]} direction to you')
                     
                 except KeyError:
                     raise CommandArgumentDoesnotExist(f'c_room: Sufficient objects (player and current_room) weren\'t provided to the command')
@@ -99,7 +101,7 @@ def c_go(*args, **objects) -> tuple[Response, Room]:
         if not potential_room.is_open:
             raise CommandArgumentDoesnotExist(f"You can't enter the room with id {potential_room.id}, since it is locked for the player")
 
-        if isinstance(potential_room, Room):
+        if not isinstance(potential_room, Room):
             raise CommandArgumentDoesnotExist(f'c_go: Potential room, where player specified does not exist. Type "Any" was provided. {potential_room=}')
 
         return (
