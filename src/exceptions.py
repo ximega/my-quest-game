@@ -65,3 +65,7 @@ class InaccessableRoom(Exception):
 class RoomAlreadyOpen(Exception):
     def __init__(self, message) -> None:
         super().__init__(message)
+
+class ProcessError(Exception):
+    def __init__(self, message) -> None:
+        super().__init__(message)

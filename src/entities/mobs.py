@@ -11,5 +11,6 @@ zombie_1lvl = Mob(
         Item.replicate_item(zombie_bone, randint(0, 3)), 
         Item.replicate_item(zombie_eye, randint(0, 2)),
         Item.replicate_item(zombie_flesh, randint(1, 5))
-    ]
+    ], 
+    damage = 1
 )

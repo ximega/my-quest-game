@@ -1,12 +1,10 @@
-from src.classes.entities import Player, Mob, Boss, Mini
+from src.classes.entities import Player
 from src.classes.crafting import Machine
-from src.classes.items import Item
-from src.classes.room import Room
 from src.classes.enchants import Enchant
 from src.commands import *
 import src.commands
 from src.ui import *
-from src.player import player
+from src.player import playerObject
 from settings.default import (
     MAX_HEALTH, 
     MAX_PROJECTILE_PROTECTION, 
@@ -15,16 +13,19 @@ from settings.default import (
     MAX_DAMAGE,
     AUTO_SAVE
 )
-from src.exceptions import (
-    TemporarilyInaccessableCommand
-)
 from src.rooms.sets import *
 
+
+
+
 ALL_COMMANDS = list(filter(lambda x: x.startswith('c_'), dir(src.commands)))
+
+
 
 def main() -> None: 
     current_interface = MainUI
     current_room = room_init
+    player = playerObject
 
     while True:            
         if current_interface is MainUI:        
@@ -51,6 +52,16 @@ def main() -> None:
         commands: list[str] = input('\n$: ').split(' ')
         
         response = None
+
+        # take damage if there is mobs in the room
+        opp_damage_response = r_command_exc(c_opponent_damage, *commands[1:], current_room = current_room, player = player)
+
+        if isinstance(opp_damage_response, tuple):
+            response, player = opp_damage_response
+        elif isinstance(opp_damage_response, Response):
+            response = opp_damage_response
+        else:
+            raise TypeError(f'Unrecognized type of {type(opp_damage_response)}, with value {opp_damage_response}')
         
         match commands[0]:
             case 'debug':
@@ -67,7 +78,7 @@ def main() -> None:
                 # TODO: implement it later, 
                 # now i have more 
                 # interesting stuff to deal with :nyam-nyam:
-                # temporarily raises TemporarilyInaccesableCommand
+                # temporarily raises TemporarilyInaccessableCommand
                 response = Response("You can't temporarily use `save` command, since implementation is not done")
                 c_save_game(player = Player)
             
@@ -85,7 +96,9 @@ def main() -> None:
                 elif isinstance(go_response, Response):
                     response = go_response
                 else:
-                    raise TypeError(f'Unrecognised type of {type(go_response)}, with value {go_response}')
+                    raise TypeError(f'Unrecognized type of {type(go_response)}, with value {go_response}')
+            case 'pass':
+                response = r_command_exc(c_pass)
             case _:
                 if f'c_{commands[0]}' in ALL_COMMANDS:
                     response = Response(f"You can't temporarily use `{commands[0]}` command, since implementation is not done")

@@ -1,20 +1,27 @@
-from src.classes.entities import Player
+from src.classes.entities import Player, Mob, Boss
 from src.classes.room import Room
-from src.constants import T
 from collections.abc import Callable
 from src.exceptions import (
-    CommandArgumentDoesnotExist, DontHaveRequiredItem
+    CommandArgumentDoesnotExist, 
+    DontHaveRequiredItem,
+    ProcessError
 )
 import settings.default
-from src.utils2 import key_format_name
 from src.ui import UserInterface
 
 
 DIRECTIONS = ['north', 'south', 'east', 'west']
 
 class Response:
-    def __init__(self, content: T | list[T]) -> None:
-        self.content = content
+    def __init__(self, content: str | list[str]) -> None:
+        self.content = None
+        if isinstance(content, str):
+            self.content = content + '\n'
+        elif isinstance(content, list):
+            self.content = content
+        else:
+            raise KeyError('Unrecognized type of Response.content')
+        
         
     def __str__(self) -> str:
         return str(self.content)
@@ -24,8 +31,8 @@ def r_command_exc(command: Callable, *args, **objects) -> Response | tuple[Respo
         return command(*args, **objects)
     except IndexError:
         return Response(f"{command.__name__} command can't run with provided arguments: {args}")
-    except KeyError:
-        return Response(f"Required keywords weren't provided to the {command.__name__} command")
+    except KeyError as exc:
+        return Response(f"Required keywords weren't provided to the {command.__name__} command: {exc.args[0]}")
     except CommandArgumentDoesnotExist as exc:
         return Response(exc.args[0])
     except DontHaveRequiredItem as exc:
@@ -35,7 +42,7 @@ def r_command_exc(command: Callable, *args, **objects) -> Response | tuple[Respo
 def c_use(*args, **objects) -> Response:
     ...
     
-def c_atack(*args, **objects) -> Response:
+def c_attack(*args, **objects) -> Response:
     ...
     
 def c_recent(*args, **objects) -> Response:
@@ -65,24 +72,26 @@ def c_room(*args: str, **objects: str) -> Response:
         case 'openchest':
             ...
         case 'open':
-            if args[1]:
-                if args[1] not in DIRECTIONS:
-                    raise CommandArgumentDoesnotExist(f'c_room: Command argument {args[1]} doesn\'t exist, and thus the command can\'t be executed')
-                
-                try:
-                    player: Player = objects['player']
-                    current_room: Room = objects['current_room']
-
-                    potential_room = current_room.get_next_room(args[1])
-                    
-                    potential_room.open_room(player)
-
-                    return Response(f'You opened room with id {potential_room.id} in {args[1]} direction to you')
-                    
-                except KeyError:
-                    raise CommandArgumentDoesnotExist(f'c_room: Sufficient objects (player and current_room) weren\'t provided to the command')
-            else:
+            if args[1] is None:
                 raise CommandArgumentDoesnotExist(f'c_room: Command argument wasn\'t provided, and thus the command can\'t be interpreted')
+            if args[1] not in DIRECTIONS:
+                raise CommandArgumentDoesnotExist(f'c_room: Command argument {args[1]} doesn\'t exist, and thus the command can\'t be executed')
+            
+            try:
+                current_room: Room = objects['current_room']
+                player: Player = objects['player']
+
+                potential_room = current_room.get_next_room(args[1])
+
+                if potential_room is None:
+                    raise CommandArgumentDoesnotExist(f'c_room: Room in this direction doesn\'t exist')
+                
+                potential_room.open_room(player)
+
+                return Response(f'You opened room with id {potential_room.id} in {args[1]} direction to you')
+                
+            except KeyError:
+                raise CommandArgumentDoesnotExist(f'c_room: Sufficient objects (player and current_room) weren\'t provided to the command')
         case _:
             raise CommandArgumentDoesnotExist('c_room: Command argument doesn\'t exist, and thus the command can\'t be executed')
 
@@ -96,10 +105,13 @@ def c_go(*args, **objects) -> tuple[Response, Room]:
     try:
         current_room: Room = objects['current_room']
 
-        potential_room: Room | None = current_room.get_next_room(args[0])
+        potential_room = current_room.get_next_room(args[0])
+
+        if potential_room is None:
+            raise CommandArgumentDoesnotExist(f"c_go: Room in this direction doesn't exist")
 
         if not potential_room.is_open:
-            raise CommandArgumentDoesnotExist(f"You can't enter the room with id {potential_room.id}, since it is locked for the player")
+            raise CommandArgumentDoesnotExist(f"c_go: You can't enter the room with id {potential_room.id}, since it is locked for the player")
 
         if not isinstance(potential_room, Room):
             raise CommandArgumentDoesnotExist(f'c_go: Potential room, where player specified does not exist. Type "Any" was provided. {potential_room=}')
@@ -178,37 +190,61 @@ def c_debug(*args, **objects) -> Response:
     return Response(content)
 
 def c_set(*args, **objects) -> Response:    
-    if args[0] == 'default':
-        ALL_DEFAULT_SETTINGS: list[str] = dir(settings.default)
-        
-        if args[1] in ALL_DEFAULT_SETTINGS:
-            try:
-                with open('settings/default.py', 'r') as file:
-                    default_settings_content_splitted: list[str] = file.read().split('\n')
+    if args[0] != 'default':
+        raise CommandArgumentDoesnotExist('c_set: Unrecognized settings scope')
+    
+    ALL_DEFAULT_SETTINGS: list[str] = dir(settings.default)
+    
+    if args[1] not in ALL_DEFAULT_SETTINGS:
+        raise CommandArgumentDoesnotExist('c_set: Unrecognized settings.default constant')
+    try:
+        with open('settings/default.py', 'r') as file:
+            default_settings_content_splitted: list[str] = file.read().split('\n')
+            
+            new_list_settings: list[str] = []
+            
+            for setting in default_settings_content_splitted:
+                splitted_setting = setting.split(' ')
+                
+                if setting.startswith(args[1]):
+                    new_list_settings.append(f"{splitted_setting[0]} = {args[2]}")
+                else:
+                    new_list_settings.append(setting)
                     
-                    new_list_settings: list[str] = []
-                    
-                    for setting in default_settings_content_splitted:
-                        splitted_setting = setting.split(' ')
+            new_settings: str = "\n".join(new_list_settings)
+            
+            with open('settings/default.py', 'w') as same_file:          
+                same_file.write(new_settings)
+            
+            return Response(f'The value of {args[1]} was successfully changed to {args[2]}')
+                
+    except IndexError:
+        raise CommandArgumentDoesnotExist('c_set: Received empty value')
                         
-                        if setting.startswith(args[1]):
-                            new_list_settings.append(f"{splitted_setting[0]} = {args[2]}")
-                        else:
-                            new_list_settings.append(setting)
-                            
-                    print(new_list_settings)
+def c_opponent_damage(*args, **objects) -> tuple[Response, Player]:
+    room: Room = objects['current_room']
+    player: Player = objects['player']
 
-                    new_settings: str = "\n".join(new_list_settings)
-                    
-                    with open('settings/default.py', 'w') as same_file:          
-                        same_file.write(new_settings)
-                    
-                    return Response(f'The value of {args[1]} was succesfully changed to {args[2]}')
-                        
-            except IndexError:
-                raise CommandArgumentDoesnotExist('c_set: Recieved empty value')
-                        
-        else:
-            raise CommandArgumentDoesnotExist('c_set: Unrecognised settings.default constant')
-    else:
-        raise CommandArgumentDoesnotExist('c_set: Unrecognised settings scope')
+    type MobList = list[Mob]
+    amount = int()
+
+    if len(args) > 0:
+        raise CommandArgumentDoesnotExist('c_opponent_damage: Unnecessary number of arguments, can\'t be more than 1')
+    
+    if isinstance(room.boss, Boss):
+        amount = player.take_damage('boss', boss_damage=room.boss.damage)
+    if isinstance(room.mobs, list):
+        amount = player.take_damage('mobs', mob_damage=room.mobs[0].damage, mob_count=len(room.mobs))
+
+    if not isinstance(amount, int):
+        raise ProcessError('c_opponent_damage: Amount of damage given is unknown, something has happened in higher hierarchy, which is unaccessible or unknown.')
+    
+    return (
+        Response(f'Player received {amount} levels of hp damage. {player.health + amount} -> {player.health}'),
+        player
+    )
+
+def c_pass(*args, **objects) -> Response:
+    if len(args) > 0: raise CommandArgumentDoesnotExist('c_pass: Provided too many arguments (more than 0). The command doesn\'t take any arguments')
+
+    return Response('')

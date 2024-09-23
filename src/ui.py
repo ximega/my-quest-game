@@ -1,4 +1,4 @@
-from src.constants import RoomsList
+from src.ctypes import RoomsList
 from src.exceptions import UnrecognisedValue
 from settings.default import (
     DEFAULT_VISIBILITY_OF_INTERFACE_SECTION
@@ -23,7 +23,7 @@ def str_format_health_level(level: int, health_max: int) -> str:
     elif level == health_max:
         return 'completely healthy'
     else:
-        raise UnrecognisedValue(f'Health level of entetiy (probably player) is unrecognised, and thus the error was raised. Health value = {level}')
+        raise UnrecognisedValue(f'Health level of entity (probably player) is unrecognized, and thus the error was raised. Health value = {level}')
     
 def str_format_protection_level(level: int, protection_max: int) -> str:
     if level == 0:

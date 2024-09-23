@@ -10,7 +10,13 @@ room_init = Room(
 )
 
 room1 = Room(
-    boss.Wider,
+    None,
     Mob.replicate_mob(mobs.zombie_1lvl, randint(5, 10)),
     1
+)
+
+room2 = Room(
+    boss.Wider,
+    None,
+    2
 )

@@ -19,6 +19,10 @@ MAX_DAMAGE = 1000
 MIN_DURABILITY = 100
 
 
+PROTECTION_MODIFIER = 0.90
+SUBPROTECTION_MODIFIER = 0.85
+PROJECTILE_PROTECTION_MODIFIER = 0.90
+
 # MAXIMUM ENCHANTS
 MAX_ENCHANT_UNBREAKING = 10
 MAX_ENCHANT_ATACK = 12
@@ -40,3 +44,12 @@ INIT_MINI_MAX_SIZE = 0
 
 
 DEFAULT_VISIBILITY_OF_INTERFACE_SECTION = False
+
+GAME_OVER_TEXT = """
+  ██████╗  █████╗ ███╗   ███╗███████╗     ██████╗ ██╗   ██╗███████╗██████╗ 
+ ██╔════╝ ██╔══██╗████╗ ████║██╔════╝    ██╔═══██╗██║   ██║██╔════╝██╔══██╗
+ ██║  ███╗███████║██╔████╔██║█████╗      ██║   ██║██║   ██║█████╗  ██████╔╝
+ ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝      ██║   ██║██║   ██║██╔══╝  ██╔══██╗
+ ╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗    ╚██████╔╝╚██████╔╝███████╗██║  ██║
+  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝     ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝
+"""

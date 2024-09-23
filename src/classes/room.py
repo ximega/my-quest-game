@@ -1,5 +1,5 @@
 from typing import Self, Literal
-from src.constants import T, DirectionLiteral, RoomsList
+from src.ctypes import T, DirectionLiteral, RoomsList
 from src.classes.entities import Boss, Mob, Player
 from src.classes.items import Item, ItemPurpose, ItemState
 from src.exceptions import (

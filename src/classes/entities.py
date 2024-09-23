@@ -1,8 +1,7 @@
-from typing import Self
+from typing import Literal, Self
 from copy import deepcopy
 from random import randint
-
-from src.constants import T
+from src.ctypes import T
 from settings.default import (
     MAX_HEALTH,
     MAX_PROTECTION,
@@ -12,6 +11,10 @@ from settings.default import (
     INIT_ACTIVE_INV_SIZE,
     INIT_INV_SIZE,
     INIT_MINI_MAX_SIZE,
+    PROTECTION_MODIFIER,
+    PROJECTILE_PROTECTION_MODIFIER,
+    SUBPROTECTION_MODIFIER,
+    GAME_OVER_TEXT
 )
 from src.classes.items import Item, ItemState
 from src.exceptions import (
@@ -23,6 +26,7 @@ from src.exceptions import (
     DontHaveRequiredItem
 )
 from src.utils2 import key_format_name
+import os
 
 
 class Entity:
@@ -42,11 +46,11 @@ class Entity:
         
         self.id = Entity.__last_id + 1
         self.name = name
-        self.health = health
-        self.protection = protection
-        self.subprotection = subprotection
-        self.projectile_protection = projectile_protection
-        self.damage = damage
+        self.__health = health
+        self.__protection = protection
+        self.__subprotection = subprotection
+        self.__projectile_protection = projectile_protection
+        self.__damage = damage
 
         Entity.__instances.append(self)
         Entity.__last_id + 1
@@ -56,17 +60,42 @@ class Entity:
 
     def __repr__(self) -> str:
         return f"<Entity> {self.name=}, {self.id=}, {self.health=}, {self.protection=}, {self.subprotection}, {self.projectile_protection}, {self.damage=}"
+
+    @property
+    def health(self):
+        return self.__health
+    @property
+    def protection(self):
+        return self.__protection
+    @property
+    def subprotection(self):
+        return self.__subprotection
+    @property
+    def projectile_protection(self):
+        return self.__projectile_protection
+    @property
+    def damage(self):
+        return self.__damage
     
-    def set_health(self, value: int): 
-        if value <= MAX_HEALTH: self.health = value
-    def set_protection(self, value: int): 
-        if value <= MAX_PROTECTION: self.protection = value
-    def set_subprotection(self, value: int): 
-        if value <= MAX_SUBPROTECTION: self.subprotection = value
-    def set_projectile_protection(self, value: int): 
-        if value <= MAX_PROJECTILE_PROTECTION: self.projectile_protection = value
-    def set_damage(self, value: int): 
-        if value <= MAX_DAMAGE: self.damage = value
+    @health.setter
+    def health(self, value: int): 
+        if value <= 0:
+            os.system('cls')
+            print(GAME_OVER_TEXT)
+            exit(1)
+        if value <= MAX_HEALTH: self.__health = value
+    @protection.setter
+    def protection(self, value: int): 
+        if value <= MAX_PROTECTION: self.__protection = value
+    @subprotection.setter
+    def subprotection(self, value: int): 
+        if value <= MAX_SUBPROTECTION: self.__subprotection = value
+    @projectile_protection.setter
+    def projectile_protection(self, value: int): 
+        if value <= MAX_PROJECTILE_PROTECTION: self.__projectile_protection = value
+    @damage.setter
+    def damage(self, value: int): 
+        if value <= MAX_DAMAGE: self.__damage = value
         
     @classmethod
     def kill_entity(cls, entity: Self) -> None:
@@ -160,8 +189,6 @@ class Player(Entity):
         elif isinstance(arg, str):
             combined_names = [x.name for x in self.inventory]
             combined_names.extend([x.name for x in self.active_inventory])
-
-            print(combined_names, arg in combined_names, arg)
             
             return arg in combined_names
         else:
@@ -214,6 +241,41 @@ class Player(Entity):
             self.delete_item(key_format_name(room_tier))
         else:
             raise DontHaveRequiredItem(f'Player doesn\'t have required item to enter room: {key_format_name(room_tier)}')
+        
+    def take_damage(self, mob_type: Literal['boss', 'mobs'], *, mob_damage: int = None, mob_count: int = None, boss_damage: int = None) -> int:
+        match mob_type:
+            case 'boss':
+                if boss_damage is None:
+                    raise SyntaxError('Player.take_damage: need to specify boss damage integer')
+                
+                protection = (PROTECTION_MODIFIER * self.protection) or 1
+                projectile_protection = (PROJECTILE_PROTECTION_MODIFIER * self.projectile_protection) or 1
+
+                amount = round(( 
+                    boss_damage * protection +
+                    boss_damage * projectile_protection
+                ))
+
+                self.health -= amount
+
+                return amount
+                
+            case 'mobs':
+                if mob_count is None or mob_damage is None:
+                    raise SyntaxError(f'Player.take_damage: need to specify mob damage or count integer ({mob_count=}, {mob_damage=})')
+
+                protection = PROTECTION_MODIFIER * self.protection or 1
+
+                amount = round(( 
+                    mob_damage * protection * mob_count
+                ))
+                
+                self.health -= amount
+
+                return amount
+
+            case _:
+                raise SyntaxError(f'Player.take_damage: mob_type - unknown literal ({mob_type})')
 
 class Mob(Entity):
     def __init__(
@@ -270,14 +332,15 @@ class Boss(Mob):
         self.reward_gold_coins = reward_gold_coins_range
         self.loot = loot
         
-    def killself(self, player: Player) -> None:
+    def killself(self, player: Player) -> str:
         Entity.kill_entity(self)
         
-        print(f'The {self.name} has been defeated!')
         
         player.give_reward(randint(self.reward_gold_coins_range[0], self.reward_gold_coins[1]))
         
         del self
         
+        return f'The {self.name} has been defeated!'
+
     # TODO: also add projectile_ and sub_ damages. The damage given to a boss is influenced by protection level and nutrition of a player
     

@@ -5,5 +5,10 @@ room_init.set_next_rooms([
 ])
 
 room1.set_next_rooms([
-    (room_init, 'east')
+    (room_init, 'east'),
+    (room2, 'north')
+])
+
+room2.set_next_rooms([
+    (room1, 'south')
 ])
