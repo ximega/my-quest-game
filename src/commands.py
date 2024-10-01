@@ -221,7 +221,7 @@ def c_set(*args, **objects) -> Response:
     except IndexError:
         raise CommandArgumentDoesnotExist('c_set: Received empty value')
                         
-def c_opponent_damage(*args, **objects) -> tuple[Response, Player]:
+def c_opponent_damage(*args, **objects) -> Player:
     room: Room = objects['current_room']
     player: Player = objects['player']
 
@@ -232,17 +232,14 @@ def c_opponent_damage(*args, **objects) -> tuple[Response, Player]:
         raise CommandArgumentDoesnotExist('c_opponent_damage: Unnecessary number of arguments, can\'t be more than 1')
     
     if isinstance(room.boss, Boss):
-        amount = player.take_damage('boss', boss_damage=room.boss.damage)
+        amount += player.take_damage('boss', boss_damage=room.boss.damage)
     if isinstance(room.mobs, list):
-        amount = player.take_damage('mobs', mob_damage=room.mobs[0].damage, mob_count=len(room.mobs))
-
+        amount += player.take_damage('mobs', mob_damage=room.mobs[0].damage, mob_count=len(room.mobs))
+        
     if not isinstance(amount, int):
         raise ProcessError('c_opponent_damage: Amount of damage given is unknown, something has happened in higher hierarchy, which is unaccessible or unknown.')
-    
-    return (
-        Response(f'Player received {amount} levels of hp damage. {player.health + amount} -> {player.health}'),
-        player
-    )
+        
+    return player
 
 def c_pass(*args, **objects) -> Response:
     if len(args) > 0: raise CommandArgumentDoesnotExist('c_pass: Provided too many arguments (more than 0). The command doesn\'t take any arguments')

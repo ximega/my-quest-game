@@ -255,7 +255,7 @@ class Player(Entity):
                     boss_damage * protection +
                     boss_damage * projectile_protection
                 ))
-
+                
                 self.health -= amount
 
                 return amount
@@ -269,6 +269,8 @@ class Player(Entity):
                 amount = round(( 
                     mob_damage * protection * mob_count
                 ))
+                
+                print(amount, mob_damage, protection, mob_count)
                 
                 self.health -= amount
 
